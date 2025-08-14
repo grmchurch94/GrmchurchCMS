@@ -14,9 +14,7 @@ const Members = () => {
   const [showAddMember, setShowAddMember] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
-
-  // Mock data for members
-  const members = [
+  const [members, setMembers] = useState([
     {
       id: 1,
       name: 'John Smith',
@@ -67,7 +65,7 @@ const Members = () => {
       ministry: 'Administration',
       avatar: null
     }
-  ];
+  ]);
 
   const handleViewMember = (member) => {
     setSelectedMember(member);
@@ -84,18 +82,30 @@ const Members = () => {
     
     // Create a new member object with a unique ID
     const newMember = {
-      id: members.length + 1,
+      id: Math.max(...members.map(m => m.id), 0) + 1,
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       status: formData.status || 'Active',
       joinDate: formData.joinDate,
       ministry: formData.ministry || 'Not Assigned',
-      avatar: formData.avatar || null
+      avatar: formData.avatar || null,
+      address: formData.address || '',
+      gender: formData.gender || '',
+      birthDate: formData.birthDate || '',
+      maritalStatus: formData.maritalStatus || '',
+      baptismDate: formData.baptismDate || '',
+      emergencyContact: formData.emergencyContact || {
+        name: '',
+        relationship: '',
+        phone: '',
+        email: ''
+      },
+      notes: formData.notes || ''
     };
     
-    // Add the new member to the members array (in a real app, this would be saved to database)
-    members.push(newMember);
+    // Add the new member to the state
+    setMembers(prevMembers => [...prevMembers, newMember]);
     
     // Show success message
     alert(`Member "${formData.name}" has been added successfully!`);
@@ -107,20 +117,26 @@ const Members = () => {
   const handleUpdateMember = (formData) => {
     console.log('Updated member data:', formData);
     
-    // Update the member in the members array (in a real app, this would be saved to database)
-    const memberIndex = members.findIndex(m => m.id === selectedMember.id);
-    if (memberIndex !== -1) {
-      members[memberIndex] = {
-        ...members[memberIndex],
-        ...formData,
-        avatar: formData.avatar || members[memberIndex].avatar
-      };
-    }
+    // Update the member in the state
+    setMembers(prevMembers => 
+      prevMembers.map(member => 
+        member.id === selectedMember.id 
+          ? { ...member, ...formData, avatar: formData.avatar || member.avatar }
+          : member
+      )
+    );
     
     alert(`Member "${formData.name}" has been updated successfully!`);
     
     setShowAddMember(false);
     setSelectedMember(null);
+  };
+
+  const handleDeleteMember = (memberId) => {
+    if (window.confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
+      setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId));
+      alert('Member has been deleted successfully!');
+    }
   };
 
   const filteredMembers = members.filter(member => {
@@ -275,7 +291,10 @@ const Members = () => {
                       >
                         <SafeIcon icon={FiEdit} />
                       </button>
-                      <button className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hidden sm:block">
+                      <button 
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hidden sm:block"
+                        onClick={() => handleDeleteMember(member.id)}
+                      >
                         <SafeIcon icon={FiTrash2} />
                       </button>
                     </div>

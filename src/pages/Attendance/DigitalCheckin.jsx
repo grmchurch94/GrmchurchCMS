@@ -76,7 +76,6 @@ const DigitalCheckin = () => {
     { id: 'youth', name: 'Youth Service', time: '5:00 PM', active: false }
   ]);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showServiceForm, setShowServiceForm] = useState(false);
   const [newServiceData, setNewServiceData] = useState({
     name: '',
     time: '',

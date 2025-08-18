@@ -378,6 +378,111 @@ const Finance = () => {
     alert(`Generating ${reportType} report... This feature will be implemented with actual reporting functionality.`);
   };
 
+  const handleExportAll = () => {
+    // Create comprehensive financial data export
+    const allData = [
+      ['Type', 'Date', 'Description/Donor', 'Category', 'Payment Method', 'Amount'],
+      // Add donations with positive amounts
+      ...donations.map(donation => [
+        'Income',
+        donation.date,
+        donation.donorName,
+        donation.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        donation.paymentMethod,
+        donation.amount
+      ]),
+      // Add expenses with negative amounts
+      ...expenses.map(expense => [
+        'Expense',
+        expense.date,
+        expense.description,
+        expense.category,
+        expense.paymentMethod,
+        -expense.amount
+      ])
+    ];
+    
+    const csvContent = allData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `complete-financial-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    alert('Complete financial report exported successfully!');
+  };
+
+  const handleDownloadReport = (reportType) => {
+    let data, filename;
+    
+    switch(reportType) {
+      case 'monthly':
+        data = [
+          ['Month', 'Total Income', 'Total Expenses', 'Net Balance'],
+          ['January', '320000', '280000', '40000'],
+          ['February', '280000', '250000', '30000'],
+          ['March', '350000', '320000', '30000'],
+          ['April', '310000', '290000', '20000'],
+          ['May', '360000', '310000', '50000'],
+          ['June', formatCurrency(totalDonations).replace(/[₦,]/g, ''), formatCurrency(totalExpenses).replace(/[₦,]/g, ''), formatCurrency(netBalance).replace(/[₦,]/g, '')]
+        ];
+        filename = `monthly-financial-statement-${new Date().toISOString().split('T')[0]}.csv`;
+        break;
+        
+      case 'quarterly':
+        data = [
+          ['Quarter', 'Income', 'Expenses', 'Net'],
+          ['Q1 2023', '950000', '850000', '100000'],
+          ['Q2 2023', formatCurrency(totalDonations).replace(/[₦,]/g, ''), formatCurrency(totalExpenses).replace(/[₦,]/g, ''), formatCurrency(netBalance).replace(/[₦,]/g, '')]
+        ];
+        filename = `quarterly-report-${new Date().toISOString().split('T')[0]}.csv`;
+        break;
+        
+      case 'annual':
+        data = [
+          ['Year', 'Budget', 'Actual Income', 'Actual Expenses', 'Variance'],
+          ['2023', '4000000', formatCurrency(totalDonations * 12).replace(/[₦,]/g, ''), formatCurrency(totalExpenses * 12).replace(/[₦,]/g, ''), formatCurrency((totalDonations - totalExpenses) * 12).replace(/[₦,]/g, '')]
+        ];
+        filename = `annual-budget-comparison-${new Date().toISOString().split('T')[0]}.csv`;
+        break;
+        
+      case 'category':
+        // Group donations by category
+        const donationsByCategory = donations.reduce((acc, donation) => {
+          const category = donation.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+          acc[category] = (acc[category] || 0) + donation.amount;
+          return acc;
+        }, {});
+        
+        data = [
+          ['Category', 'Amount', 'Percentage'],
+          ...Object.entries(donationsByCategory).map(([category, amount]) => [
+            category,
+            amount,
+            ((amount / totalDonations) * 100).toFixed(1) + '%'
+          ])
+        ];
+        filename = `donation-summary-by-category-${new Date().toISOString().split('T')[0]}.csv`;
+        break;
+        
+      default:
+        return;
+    }
+    
+    const csvContent = data.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    alert(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report downloaded successfully!`);
+  };
+
   return (
     <div className="space-y-6 fade-in">
       {/* Page Header */}

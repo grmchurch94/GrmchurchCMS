@@ -403,10 +403,20 @@ const PrayerRequests = () => {
                       </button>
                       <button 
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => handleDeletePrayerRequest(request.id)}
                         title="Delete Request"
                       >
                         <SafeIcon icon={FiTrash2} />
                       </button>
+                      {request.status === 'Active' && (
+                        <button 
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          onClick={() => handleMarkAsAnswered(request.id)}
+                          title="Mark as Answered"
+                        >
+                          <SafeIcon icon={FiCheckCircle} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

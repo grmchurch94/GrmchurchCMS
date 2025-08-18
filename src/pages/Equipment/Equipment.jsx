@@ -27,9 +27,7 @@ const Equipment = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterCondition, setFilterCondition] = useState('all');
-
-  // Mock data for equipment
-  const equipmentItems = [
+  const [equipmentItems, setEquipmentItems] = useState([
     {
       id: 1,
       name: 'Wireless Microphone',
@@ -114,7 +112,14 @@ const Equipment = () => {
       lastMaintenanceDate: '2022-11-10',
       nextMaintenanceDate: '2023-02-10'
     }
-  ];
+  ]);
+
+  const handleDeleteEquipment = (equipmentId) => {
+    if (window.confirm('Are you sure you want to delete this equipment? This action cannot be undone.')) {
+      setEquipmentItems(prevItems => prevItems.filter(item => item.id !== equipmentId));
+      alert('Equipment has been deleted successfully!');
+    }
+  };
 
   const handleEditEquipment = (equipment) => {
     setSelectedEquipment(equipment);
@@ -123,14 +128,56 @@ const Equipment = () => {
 
   const handleAddEquipment = (formData) => {
     console.log('New equipment data:', formData);
-    // Here you would add the equipment to your database
+    
+    const newEquipment = {
+      id: Math.max(...equipmentItems.map(e => e.id), 0) + 1,
+      ...formData
+    };
+    
+    setEquipmentItems(prevItems => [...prevItems, newEquipment]);
+    alert(`Equipment "${formData.name}" has been added successfully!`);
     setShowEquipmentForm(false);
+    setSelectedEquipment(null);
   };
 
   const handleUpdateEquipment = (formData) => {
     console.log('Updated equipment data:', formData);
-    // Here you would update the equipment in your database
+    
+    setEquipmentItems(prevItems => 
+      prevItems.map(item => 
+        item.id === selectedEquipment.id 
+          ? { ...item, ...formData }
+          : item
+      )
+    );
+    
+    alert(`Equipment "${formData.name}" has been updated successfully!`);
     setShowEquipmentForm(false);
+    setSelectedEquipment(null);
+  };
+
+  const handleExportEquipment = () => {
+    const csvContent = [
+      ['Name', 'Category', 'Serial Number', 'Location', 'Condition', 'Assigned To', 'Purchase Date', 'Purchase Price'],
+      ...filteredEquipment.map(item => [
+        item.name,
+        item.category,
+        item.serialNumber,
+        item.location,
+        item.condition,
+        item.assignedTo || 'Unassigned',
+        item.purchaseDate,
+        item.purchasePrice
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `equipment-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const getConditionClass = (condition) => {
@@ -277,6 +324,7 @@ const Equipment = () => {
               ))}
             </select>
             <Button variant="outline" icon={FiFilter} size="sm">More Filters</Button>
+            <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportEquipment}>Export</Button>
           </div>
         </div>
       </Card>
@@ -345,7 +393,10 @@ const Equipment = () => {
                       >
                         <SafeIcon icon={FiEdit} />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                      <button 
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => handleDeleteEquipment(item.id)}
+                      >
                         <SafeIcon icon={FiTrash2} />
                       </button>
                     </div>

@@ -27,9 +27,7 @@ const BulkSms = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDate, setFilterDate] = useState('');
-
-  // Mock data for messages
-  const messages = [
+  const [messages, setMessages] = useState([
     {
       id: 1,
       subject: 'Sunday Service Reminder',
@@ -85,12 +83,69 @@ const BulkSms = () => {
       delivered: 0,
       failed: 50
     }
-  ];
+  ]);
+
+  const handleDeleteMessage = (messageId) => {
+    if (window.confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+      setMessages(prevMessages => prevMessages.filter(message => message.id !== messageId));
+      alert('Message has been deleted successfully!');
+    }
+  };
+
+  const handleResendMessage = (messageId) => {
+    if (window.confirm('Are you sure you want to resend this message?')) {
+      setMessages(prevMessages => 
+        prevMessages.map(message => 
+          message.id === messageId 
+            ? { ...message, status: 'Sent', sentDate: new Date().toISOString().split('T')[0], sentTime: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }) }
+            : message
+        )
+      );
+      alert('Message has been resent successfully!');
+    }
+  };
 
   const handleSendMessage = (formData) => {
     console.log('Message data:', formData);
-    // Here you would send/schedule the message
+    
+    const newMessage = {
+      id: Math.max(...messages.map(m => m.id), 0) + 1,
+      subject: formData.subject,
+      message: formData.message,
+      sentDate: formData.isScheduled ? formData.scheduledDate : new Date().toISOString().split('T')[0],
+      sentTime: formData.isScheduled ? formData.scheduledTime : new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+      status: formData.isScheduled ? 'Scheduled' : 'Sent',
+      recipients: formData.recipients === 'all' ? 50 : formData.customRecipients.length,
+      delivered: formData.isScheduled ? 0 : (formData.recipients === 'all' ? 48 : formData.customRecipients.length - 1),
+      failed: formData.isScheduled ? 0 : 1
+    };
+    
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+    alert(`Message "${formData.subject}" has been ${formData.isScheduled ? 'scheduled' : 'sent'} successfully!`);
     setShowMessageForm(false);
+  };
+
+  const handleExportMessages = () => {
+    const csvContent = [
+      ['Subject', 'Status', 'Recipients', 'Delivered', 'Failed', 'Date', 'Time'],
+      ...filteredMessages.map(message => [
+        message.subject,
+        message.status,
+        message.recipients,
+        message.delivered,
+        message.failed,
+        message.sentDate,
+        message.sentTime
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bulk-sms-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const getStatusIcon = (status) => {
@@ -258,6 +313,7 @@ const BulkSms = () => {
               />
             </div>
             <Button variant="outline" icon={FiFilter} size="sm">More Filters</Button>
+            <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportMessages}>Export</Button>
           </div>
         </div>
       </Card>
@@ -319,6 +375,14 @@ const BulkSms = () => {
                       <span className="text-xs text-gray-500">
                         {message.delivered}/{message.recipients} ({Math.round((message.delivered / message.recipients) * 100)}%)
                       </span>
+                      {message.status === 'Failed' && (
+                        <button 
+                          className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                          onClick={() => handleResendMessage(message.id)}
+                        >
+                          Resend
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

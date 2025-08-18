@@ -29,9 +29,7 @@ const Finance = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterDate, setFilterDate] = useState('');
-
-  // Mock data
-  const donations = [
+  const [donations, setDonations] = useState([
     {
       id: 1,
       donorName: 'John Smith',
@@ -72,9 +70,9 @@ const Finance = () => {
       category: 'tithe',
       paymentMethod: 'paystack'
     }
-  ];
+  ]);
 
-  const expenses = [
+  const [expenses, setExpenses] = useState([
     {
       id: 1,
       description: 'Utilities',
@@ -115,7 +113,21 @@ const Finance = () => {
       category: 'Maintenance',
       paymentMethod: 'pos'
     }
-  ];
+  ]);
+
+  const handleDeleteDonation = (donationId) => {
+    if (window.confirm('Are you sure you want to delete this donation? This action cannot be undone.')) {
+      setDonations(prevDonations => prevDonations.filter(donation => donation.id !== donationId));
+      alert('Donation has been deleted successfully!');
+    }
+  };
+
+  const handleDeleteExpense = (expenseId) => {
+    if (window.confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
+      setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== expenseId));
+      alert('Expense has been deleted successfully!');
+    }
+  };
 
   // Calculate stats
   const totalDonations = donations.reduce((sum, donation) => sum + donation.amount, 0);
@@ -290,14 +302,79 @@ const Finance = () => {
 
   const handleAddDonation = (formData) => {
     console.log('New donation data:', formData);
-    // Here you would add the donation to your database
+    
+    const newDonation = {
+      id: Math.max(...donations.map(d => d.id), 0) + 1,
+      donorName: formData.donorName,
+      amount: parseFloat(formData.amount),
+      date: formData.date,
+      category: formData.category,
+      paymentMethod: formData.paymentMethod
+    };
+    
+    setDonations(prevDonations => [...prevDonations, newDonation]);
+    alert(`Donation of ${formatCurrency(formData.amount)} has been recorded successfully!`);
     setShowDonationForm(false);
   };
 
   const handleAddExpense = (formData) => {
     console.log('New expense data:', formData);
-    // Here you would add the expense to your database
+    
+    const newExpense = {
+      id: Math.max(...expenses.map(e => e.id), 0) + 1,
+      description: formData.description,
+      amount: parseFloat(formData.amount),
+      date: formData.date,
+      category: formData.category,
+      paymentMethod: formData.paymentMethod
+    };
+    
+    setExpenses(prevExpenses => [...prevExpenses, newExpense]);
+    alert(`Expense of ${formatCurrency(formData.amount)} has been recorded successfully!`);
     setShowExpenseForm(false);
+  };
+
+  const handleExportFinancialData = (type) => {
+    let data, filename;
+    
+    if (type === 'donations') {
+      data = [
+        ['Donor Name', 'Amount', 'Date', 'Category', 'Payment Method'],
+        ...filteredDonations.map(donation => [
+          donation.donorName,
+          donation.amount,
+          donation.date,
+          donation.category,
+          donation.paymentMethod
+        ])
+      ];
+      filename = `donations-${new Date().toISOString().split('T')[0]}.csv`;
+    } else {
+      data = [
+        ['Description', 'Amount', 'Date', 'Category', 'Payment Method'],
+        ...filteredExpenses.map(expense => [
+          expense.description,
+          expense.amount,
+          expense.date,
+          expense.category,
+          expense.paymentMethod
+        ])
+      ];
+      filename = `expenses-${new Date().toISOString().split('T')[0]}.csv`;
+    }
+    
+    const csvContent = data.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleGenerateReport = (reportType) => {
+    alert(`Generating ${reportType} report... This feature will be implemented with actual reporting functionality.`);
   };
 
   return (
@@ -779,7 +856,7 @@ const Finance = () => {
                 </div>
               </div>
               <div className="flex justify-end mt-4">
-                <Button icon={FiPieChart}>Generate Report</Button>
+                <Button icon={FiPieChart} onClick={() => handleGenerateReport('custom')}>Generate Report</Button>
               </div>
             </div>
           </Card>

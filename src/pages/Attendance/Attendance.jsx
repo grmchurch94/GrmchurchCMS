@@ -289,7 +289,7 @@ const Attendance = () => {
             Showing <span className="font-medium">{filteredRecords.length}</span> of <span className="font-medium">{attendanceRecords.length}</span> records
           </p>
           <div className="space-x-2">
-            <Button variant="outline" icon={FiDownload} size="sm">Export</Button>
+            <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportAttendance}>Export</Button>
           </div>
         </div>
       </Card>

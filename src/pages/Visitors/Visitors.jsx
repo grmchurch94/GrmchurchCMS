@@ -47,9 +47,7 @@ const Visitors = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [showVisitorForm, setShowVisitorForm] = useState(false);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
-
-  // Mock data for visitors
-  const visitors = [
+  const [visitors, setVisitors] = useState([
     {
       id: 1,
       name: 'Alex Thompson',
@@ -100,7 +98,14 @@ const Visitors = () => {
       howHeard: 'Advertisement',
       assignedTo: 'Ministry Leader Emily'
     }
-  ];
+  ]);
+
+  const handleDeleteVisitor = (visitorId) => {
+    if (window.confirm('Are you sure you want to delete this visitor? This action cannot be undone.')) {
+      setVisitors(prevVisitors => prevVisitors.filter(visitor => visitor.id !== visitorId));
+      alert('Visitor has been deleted successfully!');
+    }
+  };
 
   const handleEditVisitor = (visitor) => {
     setSelectedVisitor(visitor);
@@ -109,14 +114,64 @@ const Visitors = () => {
 
   const handleAddVisitor = (formData) => {
     console.log('New visitor data:', formData);
-    // Here you would add the visitor to your database
+    
+    const newVisitor = {
+      id: Math.max(...visitors.map(v => v.id), 0) + 1,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      visitDate: formData.visitDate,
+      followUpStatus: formData.followUpStatus || 'Pending',
+      howHeard: formData.howHeard || 'Other',
+      assignedTo: formData.assignedTo || null,
+      address: formData.address || '',
+      interestedIn: formData.interestedIn || [],
+      notes: formData.notes || ''
+    };
+    
+    setVisitors(prevVisitors => [...prevVisitors, newVisitor]);
+    alert(`Visitor "${formData.name}" has been added successfully!`);
     setShowVisitorForm(false);
+    setSelectedVisitor(null);
   };
 
   const handleUpdateVisitor = (formData) => {
     console.log('Updated visitor data:', formData);
-    // Here you would update the visitor in your database
+    
+    setVisitors(prevVisitors => 
+      prevVisitors.map(visitor => 
+        visitor.id === selectedVisitor.id 
+          ? { ...visitor, ...formData }
+          : visitor
+      )
+    );
+    
+    alert(`Visitor "${formData.name}" has been updated successfully!`);
     setShowVisitorForm(false);
+    setSelectedVisitor(null);
+  };
+
+  const handleExportVisitors = () => {
+    const csvContent = [
+      ['Name', 'Email', 'Phone', 'Visit Date', 'Follow-up Status', 'How Heard', 'Assigned To'],
+      ...filteredVisitors.map(visitor => [
+        visitor.name,
+        visitor.email,
+        visitor.phone,
+        visitor.visitDate,
+        visitor.followUpStatus,
+        visitor.howHeard,
+        visitor.assignedTo || 'Not assigned'
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `visitors-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const getStatusIcon = (status) => {
@@ -270,7 +325,7 @@ const Visitors = () => {
             </select>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               <Button variant="outline" icon={FiFilter} size="sm">More Filters</Button>
-              <Button variant="outline" icon={FiDownload} size="sm">Export</Button>
+              <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportVisitors}>Export</Button>
             </div>
           </div>
         </div>
@@ -369,7 +424,10 @@ const Visitors = () => {
                       >
                         <SafeIcon icon={FiEdit} />
                       </button>
-                      <button className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hidden sm:block">
+                      <button 
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hidden sm:block"
+                        onClick={() => handleDeleteVisitor(visitor.id)}
+                      >
                         <SafeIcon icon={FiTrash2} />
                       </button>
                     </div>

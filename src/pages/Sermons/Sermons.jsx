@@ -29,9 +29,7 @@ const Sermons = () => {
   const [filterSeries, setFilterSeries] = useState('all');
   const [showSermonForm, setShowSermonForm] = useState(false);
   const [selectedSermon, setSelectedSermon] = useState(null);
-
-  // Mock data for sermons
-  const sermons = [
+  const [sermons, setSermons] = useState([
     {
       id: 1,
       title: 'Walking in Faith',
@@ -102,11 +100,24 @@ const Sermons = () => {
       tags: ['shepherd', 'care', 'guidance'],
       status: 'Draft'
     }
-  ];
+  ]);
+
+  const handleDeleteSermon = (sermonId) => {
+    if (window.confirm('Are you sure you want to delete this sermon? This action cannot be undone.')) {
+      setSermons(prevSermons => prevSermons.filter(sermon => sermon.id !== sermonId));
+      alert('Sermon has been deleted successfully!');
+    }
+  };
 
   const handleViewSermon = (sermon) => {
     setSelectedSermon(sermon);
-    // Open sermon details or player
+    if (sermon.videoUrl) {
+      window.open(sermon.videoUrl, '_blank');
+    } else if (sermon.audioUrl) {
+      window.open(sermon.audioUrl, '_blank');
+    } else {
+      alert('No media available for this sermon');
+    }
   };
 
   const handleEditSermon = (sermon) => {
@@ -116,12 +127,30 @@ const Sermons = () => {
 
   const handleAddSermon = (formData) => {
     console.log('New sermon data:', formData);
+    
+    const newSermon = {
+      id: Math.max(...sermons.map(s => s.id), 0) + 1,
+      ...formData
+    };
+    
+    setSermons(prevSermons => [...prevSermons, newSermon]);
+    alert(`Sermon "${formData.title}" has been added successfully!`);
     setShowSermonForm(false);
     setSelectedSermon(null);
   };
 
   const handleUpdateSermon = (formData) => {
     console.log('Updated sermon data:', formData);
+    
+    setSermons(prevSermons => 
+      prevSermons.map(sermon => 
+        sermon.id === selectedSermon.id 
+          ? { ...sermon, ...formData }
+          : sermon
+      )
+    );
+    
+    alert(`Sermon "${formData.title}" has been updated successfully!`);
     setShowSermonForm(false);
     setSelectedSermon(null);
   };
@@ -130,9 +159,44 @@ const Sermons = () => {
     if (sermon.videoUrl) {
       window.open(sermon.videoUrl, '_blank');
     } else if (sermon.audioUrl) {
-      // Open audio player
-      console.log('Playing audio:', sermon.audioUrl);
+      window.open(sermon.audioUrl, '_blank');
+    } else {
+      alert('No media available for this sermon');
     }
+  };
+
+  const handleDownloadSermon = (sermon) => {
+    if (sermon.audioUrl) {
+      const a = document.createElement('a');
+      a.href = sermon.audioUrl;
+      a.download = `${sermon.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`;
+      a.click();
+    } else {
+      alert('No downloadable audio available for this sermon');
+    }
+  };
+
+  const handleExportSermons = () => {
+    const csvContent = [
+      ['Title', 'Speaker', 'Date', 'Series', 'Scripture', 'Duration', 'Status'],
+      ...filteredSermons.map(sermon => [
+        sermon.title,
+        sermon.speaker,
+        sermon.date,
+        sermon.series,
+        sermon.scripture,
+        sermon.duration || 'N/A',
+        sermon.status
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sermons-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const getStatusClass = (status) => {
@@ -266,7 +330,7 @@ const Sermons = () => {
               ))}
             </select>
             <Button variant="outline" icon={FiFilter} size="sm">More Filters</Button>
-            <Button variant="outline" icon={FiDownload} size="sm">Export</Button>
+            <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportSermons}>Export</Button>
           </div>
         </div>
       </Card>
@@ -372,12 +436,14 @@ const Sermons = () => {
                       </button>
                       <button 
                         className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        onClick={() => handleDownloadSermon(sermon)}
                         title="Download"
                       >
                         <SafeIcon icon={FiDownload} />
                       </button>
                       <button 
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => handleDeleteSermon(sermon.id)}
                         title="Delete Sermon"
                       >
                         <SafeIcon icon={FiTrash2} />

@@ -559,7 +559,7 @@ const Reports = () => {
         </div>
         
         <div className="flex justify-end">
-          <Button icon={FiFileText}>Generate Custom Report</Button>
+          <Button icon={FiFileText} onClick={handleGenerateReport}>Generate Custom Report</Button>
         </div>
       </Card>
     </div>

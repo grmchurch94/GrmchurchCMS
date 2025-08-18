@@ -30,9 +30,7 @@ const MediaLibrary = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
-
-  // Mock data for media files
-  const mediaFiles = [
+  const [mediaFiles, setMediaFiles] = useState([
     {
       id: 1,
       name: 'Sunday Service - June 4, 2023',
@@ -129,7 +127,21 @@ const MediaLibrary = () => {
       thumbnail: null,
       url: 'https://example.com/documents/bible-study.pdf'
     }
-  ];
+  ]);
+
+  const handleDeleteMedia = (mediaId) => {
+    if (window.confirm('Are you sure you want to delete this media file? This action cannot be undone.')) {
+      setMediaFiles(prevFiles => prevFiles.filter(file => file.id !== mediaId));
+      alert('Media file has been deleted successfully!');
+    }
+  };
+
+  const handleDownloadMedia = (media) => {
+    const a = document.createElement('a');
+    a.href = media.url;
+    a.download = media.name;
+    a.click();
+  };
 
   const getTypeIcon = (type) => {
     switch (type) {
@@ -163,7 +175,13 @@ const MediaLibrary = () => {
 
   const handleViewMedia = (media) => {
     setSelectedMedia(media);
-    // Open media viewer/player
+    if (media.type === 'video' || media.type === 'audio') {
+      window.open(media.url, '_blank');
+    } else if (media.type === 'image') {
+      window.open(media.url, '_blank');
+    } else {
+      window.open(media.url, '_blank');
+    }
   };
 
   const handleEditMedia = (media) => {
@@ -173,12 +191,38 @@ const MediaLibrary = () => {
 
   const handleUploadMedia = (formData) => {
     console.log('New media data:', formData);
+    
+    const newMedia = {
+      id: Math.max(...mediaFiles.map(m => m.id), 0) + 1,
+      name: formData.name,
+      type: formData.type,
+      size: formData.file ? `${(formData.file.size / 1024 / 1024).toFixed(1)} MB` : '0 MB',
+      duration: formData.duration || null,
+      uploadDate: new Date().toISOString().split('T')[0],
+      category: formData.category,
+      tags: formData.tags,
+      thumbnail: formData.type === 'image' ? URL.createObjectURL(formData.file) : null,
+      url: formData.url || (formData.file ? URL.createObjectURL(formData.file) : '')
+    };
+    
+    setMediaFiles(prevFiles => [...prevFiles, newMedia]);
+    alert(`Media file "${formData.name}" has been uploaded successfully!`);
     setShowUploadForm(false);
     setSelectedMedia(null);
   };
 
   const handleUpdateMedia = (formData) => {
     console.log('Updated media data:', formData);
+    
+    setMediaFiles(prevFiles => 
+      prevFiles.map(file => 
+        file.id === selectedMedia.id 
+          ? { ...file, ...formData, tags: formData.tags }
+          : file
+      )
+    );
+    
+    alert(`Media file "${formData.name}" has been updated successfully!`);
     setShowUploadForm(false);
     setSelectedMedia(null);
   };
@@ -395,12 +439,14 @@ const MediaLibrary = () => {
                       </button>
                       <button 
                         className="p-1.5 sm:p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        onClick={() => handleDownloadMedia(media)}
                         title="Download"
                       >
                         <SafeIcon icon={FiDownload} />
                       </button>
                       <button 
                         className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => handleDeleteMedia(media.id)}
                         title="Delete"
                       >
                         <SafeIcon icon={FiTrash2} />
@@ -482,12 +528,14 @@ const MediaLibrary = () => {
                         </button>
                         <button 
                           className="p-1.5 sm:p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors hidden sm:block"
+                         onClick={() => handleDownloadMedia(media)}
                           title="Download"
                         >
                           <SafeIcon icon={FiDownload} />
                         </button>
                         <button 
                           className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hidden sm:block"
+                         onClick={() => handleDeleteMedia(media.id)}
                           title="Delete"
                         >
                           <SafeIcon icon={FiTrash2} />

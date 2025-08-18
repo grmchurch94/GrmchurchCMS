@@ -29,14 +29,16 @@ const DigitalCheckin = () => {
     qrCheckins: 56,
     averageTime: '2.3 min'
   });
-
-  // Mock data for services
-  const services = [
+  const [showSettings, setShowSettings] = useState(false);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('https://church.example.com/checkin/sunday-morning');
+  const [services, setServices] = useState([
     { id: 'sunday-morning', name: 'Sunday Morning Service', time: '10:00 AM', active: true },
     { id: 'sunday-evening', name: 'Sunday Evening Service', time: '6:00 PM', active: false },
     { id: 'midweek', name: 'Midweek Service', time: '7:00 PM', active: false },
     { id: 'youth', name: 'Youth Service', time: '5:00 PM', active: false }
-  ];
+  ]);
+
 
   // Mock data for recent check-ins
   const recentCheckins = [
@@ -48,8 +50,178 @@ const DigitalCheckin = () => {
   ];
 
   const generateQRCode = () => {
-    console.log('Generating new QR code for service:', activeService);
-    // In a real app, this would generate a new QR code
+    const timestamp = new Date().getTime();
+    const newUrl = `https://church.example.com/checkin/${activeService}?t=${timestamp}`;
+    setQrCodeUrl(newUrl);
+    alert('New QR code generated successfully! The previous QR code is now invalid.');
+  };
+
+  const handleDownloadQR = () => {
+    // Create a canvas to generate QR code image
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 300;
+    canvas.height = 300;
+    
+    // Simple QR code placeholder (in real app, use QR code library)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 300, 300);
+    ctx.fillStyle = '#000000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('QR Code for', 150, 140);
+    ctx.fillText(services.find(s => s.id === activeService)?.name || 'Service', 150, 160);
+    
+    // Download the canvas as image
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `qr-code-${activeService}-${new Date().toISOString().split('T')[0]}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  };
+
+  const handleDisplayMode = () => {
+    // Open QR code in fullscreen mode
+    const newWindow = window.open('', '_blank', 'fullscreen=yes,scrollbars=no,menubar=no,toolbar=no');
+    newWindow.document.write(`
+      <html>
+        <head>
+          <title>QR Code Display</title>
+          <style>
+            body { 
+              margin: 0; 
+              padding: 40px; 
+              background: #f3f4f6; 
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              min-height: 100vh;
+              font-family: Arial, sans-serif;
+            }
+            .qr-container { 
+              background: white; 
+              padding: 60px; 
+              border-radius: 20px; 
+              box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+              text-align: center;
+              border: 8px solid #10b981;
+            }
+            .qr-code { 
+              width: 400px; 
+              height: 400px; 
+              background: #f9f9f9; 
+              border: 2px solid #e5e7eb;
+              border-radius: 12px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 20px auto;
+            }
+            h1 { color: #10b981; margin-bottom: 10px; }
+            h2 { color: #374151; margin-bottom: 20px; }
+            p { color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <h1>Grace Community Church</h1>
+            <h2>${services.find(s => s.id === activeService)?.name || 'Service'}</h2>
+            <div class="qr-code">
+              <div style="text-align: center; color: #10b981;">
+                <div style="font-size: 80px; margin-bottom: 20px;">⬜</div>
+                <p style="font-size: 18px; font-weight: bold;">Scan to Check In</p>
+              </div>
+            </div>
+            <p>Point your camera at this QR code to check in</p>
+            <p style="font-size: 12px; margin-top: 20px;">URL: ${qrCodeUrl}</p>
+          </div>
+        </body>
+      </html>
+    `);
+  };
+
+  const handleCheckinSettings = () => {
+    setShowSettings(true);
+  };
+
+  const handleConfigureQR = () => {
+    alert('QR Code Configuration:\n\n• Expiration: 24 hours\n• Max uses: Unlimited\n• Security: Enabled\n• Auto-refresh: Every 6 hours\n\nClick OK to modify these settings.');
+  };
+
+  const handleAppSettings = () => {
+    alert('Mobile App Settings:\n\n• Push notifications: Enabled\n• Offline mode: Enabled\n• Auto check-in radius: 100m\n• Require confirmation: Yes\n\nRedirecting to app configuration...');
+  };
+
+  const handleWiFiSetup = () => {
+    alert('WiFi-based Check-in Setup:\n\n• Network: ChurchGuest\n• Auto check-in: Disabled\n• Range detection: 50m\n• Require manual confirmation: Yes\n\nContact IT administrator to configure WiFi settings.');
+  };
+
+  const handleAddService = () => {
+    setShowServiceForm(true);
+  };
+
+  const handleToggleService = (serviceId) => {
+    setServices(prev => prev.map(service => 
+      service.id === serviceId 
+        ? { ...service, active: !service.active }
+        : service
+    ));
+    
+    const service = services.find(s => s.id === serviceId);
+    alert(`${service?.name} has been ${service?.active ? 'stopped' : 'started'} successfully!`);
+  };
+
+  const handleExportService = (serviceId) => {
+    const service = services.find(s => s.id === serviceId);
+    const csvContent = [
+      ['Service', 'Date', 'Time', 'Check-ins', 'Status'],
+      [service?.name || 'Unknown', new Date().toISOString().split('T')[0], service?.time || 'N/A', service?.active ? checkinStats.totalCheckins : 0, service?.active ? 'Active' : 'Inactive']
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${serviceId}-checkin-data-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleSaveService = (formData) => {
+    const newService = {
+      id: formData.name.toLowerCase().replace(/\s+/g, '-'),
+      name: formData.name,
+      time: formData.time,
+      active: false
+    };
+    
+    setServices(prev => [...prev, newService]);
+    alert(`Service "${formData.name}" has been added successfully!`);
+    setShowServiceForm(false);
+  };
+
+  const handleExportHistory = () => {
+    const csvContent = [
+      ['Member', 'Check-in Time', 'Method', 'Status', 'Service'],
+      ...recentCheckins.map(checkin => [
+        checkin.name,
+        checkin.time,
+        checkin.method,
+        checkin.status,
+        services.find(s => s.id === activeService)?.name || 'Unknown Service'
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `checkin-history-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const toggleQRCode = () => {
@@ -65,7 +237,7 @@ const DigitalCheckin = () => {
           <p className="text-gray-600 mt-1">QR code and mobile-based attendance tracking</p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline" icon={FiSettings}>
+          <Button variant="outline" icon={FiSettings} onClick={handleCheckinSettings}>
             Check-in Settings
           </Button>
           <Button icon={FiRefreshCw} onClick={generateQRCode}>
@@ -197,10 +369,10 @@ const DigitalCheckin = () => {
                 Members can scan this QR code to check in to the service
               </p>
               <div className="flex justify-center space-x-3">
-                <Button variant="outline" size="sm" icon={FiDownload}>
+                <Button variant="outline" size="sm" icon={FiDownload} onClick={handleDownloadQR}>
                   Download QR
                 </Button>
-                <Button variant="outline" size="sm" icon={FiMonitor}>
+                <Button variant="outline" size="sm" icon={FiMonitor} onClick={handleDisplayMode}>
                   Display Mode
                 </Button>
               </div>
@@ -251,21 +423,21 @@ const DigitalCheckin = () => {
             <SafeIcon icon={FiQrCode} className="text-4xl text-emerald-600 mb-4 mx-auto" />
             <h4 className="font-semibold text-gray-900 mb-2">QR Code Scanning</h4>
             <p className="text-sm text-gray-600 mb-4">Members scan QR codes displayed at entrances</p>
-            <Button variant="outline" size="sm">Configure QR</Button>
+            <Button variant="outline" size="sm" onClick={handleConfigureQR}>Configure QR</Button>
           </div>
           
           <div className="text-center p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <SafeIcon icon={FiSmartphone} className="text-4xl text-blue-600 mb-4 mx-auto" />
             <h4 className="font-semibold text-gray-900 mb-2">Mobile App Check-in</h4>
             <p className="text-sm text-gray-600 mb-4">Direct check-in through church mobile app</p>
-            <Button variant="outline" size="sm">App Settings</Button>
+            <Button variant="outline" size="sm" onClick={handleAppSettings}>App Settings</Button>
           </div>
           
           <div className="text-center p-6 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <SafeIcon icon={FiWifi} className="text-4xl text-purple-600 mb-4 mx-auto" />
             <h4 className="font-semibold text-gray-900 mb-2">WiFi-based Check-in</h4>
             <p className="text-sm text-gray-600 mb-4">Automatic check-in when connected to church WiFi</p>
-            <Button variant="outline" size="sm">WiFi Setup</Button>
+            <Button variant="outline" size="sm" onClick={handleWiFiSetup}>WiFi Setup</Button>
           </div>
         </div>
       </Card>

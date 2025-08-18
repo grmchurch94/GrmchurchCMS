@@ -24,70 +24,188 @@ const Offering = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterService, setFilterService] = useState('all');
-
-  // Mock data for offerings
-  const offerings = [
-    {
-      id: 1,
-      date: '2023-06-04',
-      service: 'Sunday Morning Service',
-      totalAmount: 125000.00,
-      cashAmount: 45000.00,
-      transferAmount: 50000.00,
-      posAmount: 30000.00,
-      collectedBy: 'Deacon Michael',
-      countedBy: 'Finance Team',
-      notes: 'Special offering for building fund included'
-    },
-    {
-      id: 2,
-      date: '2023-05-28',
-      service: 'Sunday Morning Service',
-      totalAmount: 98000.00,
-      cashAmount: 38000.00,
-      transferAmount: 40000.00,
-      posAmount: 20000.00,
-      collectedBy: 'Deacon Sarah',
-      countedBy: 'Finance Team',
-      notes: ''
-    },
-    {
-      id: 3,
-      date: '2023-05-24',
-      service: 'Midweek Service',
-      totalAmount: 35000.00,
-      cashAmount: 20000.00,
-      transferAmount: 15000.00,
-      posAmount: 0.00,
-      collectedBy: 'Elder John',
-      countedBy: 'Finance Team',
-      notes: 'Lower attendance due to weather'
-    },
-    {
-      id: 4,
-      date: '2023-05-21',
-      service: 'Sunday Morning Service',
-      totalAmount: 110000.00,
-      cashAmount: 42000.00,
-      transferAmount: 48000.00,
-      posAmount: 20000.00,
-      collectedBy: 'Deacon Michael',
-      countedBy: 'Finance Team',
-      notes: ''
-    },
-    {
-      id: 5,
-      date: '2023-05-17',
-      service: 'Midweek Service',
-      totalAmount: 28000.00,
-      cashAmount: 18000.00,
-      transferAmount: 10000.00,
-      posAmount: 0.00,
-      collectedBy: 'Elder Sarah',
-      countedBy: 'Finance Team',
-      notes: ''
+  const [showOfferingForm, setShowOfferingForm] = useState(false);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [selectedOffering, setSelectedOffering] = useState(null);
+  const [offerings, setOfferings] = useState(() => {
+    const savedOfferings = localStorage.getItem('churchOfferings');
+    if (savedOfferings) {
+      return JSON.parse(savedOfferings);
     }
-  ];
+    return [
+      {
+        id: 1,
+        date: '2023-06-04',
+        service: 'Sunday Morning Service',
+        totalAmount: 125000.00,
+        cashAmount: 45000.00,
+        transferAmount: 50000.00,
+        posAmount: 30000.00,
+        collectedBy: 'Deacon Michael',
+        countedBy: 'Finance Team',
+        notes: 'Special offering for building fund included'
+      },
+      {
+        id: 2,
+        date: '2023-05-28',
+        service: 'Sunday Morning Service',
+        totalAmount: 98000.00,
+        cashAmount: 38000.00,
+        transferAmount: 40000.00,
+        posAmount: 20000.00,
+        collectedBy: 'Deacon Sarah',
+        countedBy: 'Finance Team',
+        notes: ''
+      },
+      {
+        id: 3,
+        date: '2023-05-24',
+        service: 'Midweek Service',
+        totalAmount: 35000.00,
+        cashAmount: 20000.00,
+        transferAmount: 15000.00,
+        posAmount: 0.00,
+        collectedBy: 'Elder John',
+        countedBy: 'Finance Team',
+        notes: 'Lower attendance due to weather'
+      },
+      {
+        id: 4,
+        date: '2023-05-21',
+        service: 'Sunday Morning Service',
+        totalAmount: 110000.00,
+        cashAmount: 42000.00,
+        transferAmount: 48000.00,
+        posAmount: 20000.00,
+        collectedBy: 'Deacon Michael',
+        countedBy: 'Finance Team',
+        notes: ''
+      },
+      {
+        id: 5,
+        date: '2023-05-17',
+        service: 'Midweek Service',
+        totalAmount: 28000.00,
+        cashAmount: 18000.00,
+        transferAmount: 10000.00,
+        posAmount: 0.00,
+        collectedBy: 'Elder Sarah',
+        countedBy: 'Finance Team',
+        notes: ''
+      }
+    ];
+  });
+  const [filterCollector, setFilterCollector] = useState('all');
+  const [filterAmountRange, setFilterAmountRange] = useState({ min: '', max: '' });
+
+  // Save offerings to localStorage whenever offerings state changes
+  React.useEffect(() => {
+    localStorage.setItem('churchOfferings', JSON.stringify(offerings));
+  }, [offerings]);
+
+  const handleRecordOffering = () => {
+    setSelectedOffering(null);
+    setShowOfferingForm(true);
+  };
+
+  const handleEditOffering = (offering) => {
+    setSelectedOffering(offering);
+    setShowOfferingForm(true);
+  };
+
+  const handleDeleteOffering = (offeringId) => {
+    if (window.confirm('Are you sure you want to delete this offering record? This action cannot be undone.')) {
+      setOfferings(prevOfferings => prevOfferings.filter(offering => offering.id !== offeringId));
+      alert('Offering record has been deleted successfully!');
+    }
+  };
+
+  const handleAddOffering = (formData) => {
+    console.log('New offering data:', formData);
+    
+    const newOffering = {
+      id: Math.max(...offerings.map(o => o.id), 0) + 1,
+      date: formData.date,
+      service: formData.service,
+      totalAmount: parseFloat(formData.cashAmount) + parseFloat(formData.transferAmount) + parseFloat(formData.posAmount),
+      cashAmount: parseFloat(formData.cashAmount),
+      transferAmount: parseFloat(formData.transferAmount),
+      posAmount: parseFloat(formData.posAmount),
+      collectedBy: formData.collectedBy,
+      countedBy: formData.countedBy,
+      notes: formData.notes
+    };
+    
+    setOfferings(prevOfferings => [...prevOfferings, newOffering]);
+    alert(`Offering record for ${formData.service} has been added successfully!`);
+    setShowOfferingForm(false);
+    setSelectedOffering(null);
+  };
+
+  const handleUpdateOffering = (formData) => {
+    console.log('Updated offering data:', formData);
+    
+    setOfferings(prevOfferings => 
+      prevOfferings.map(offering => 
+        offering.id === selectedOffering.id 
+          ? {
+              ...offering,
+              date: formData.date,
+              service: formData.service,
+              totalAmount: parseFloat(formData.cashAmount) + parseFloat(formData.transferAmount) + parseFloat(formData.posAmount),
+              cashAmount: parseFloat(formData.cashAmount),
+              transferAmount: parseFloat(formData.transferAmount),
+              posAmount: parseFloat(formData.posAmount),
+              collectedBy: formData.collectedBy,
+              countedBy: formData.countedBy,
+              notes: formData.notes
+            }
+          : offering
+      )
+    );
+    
+    alert(`Offering record for ${formData.service} has been updated successfully!`);
+    setShowOfferingForm(false);
+    setSelectedOffering(null);
+  };
+
+  const handleExportOfferings = () => {
+    const csvContent = [
+      ['Date', 'Service', 'Total Amount', 'Cash', 'Transfer', 'POS', 'Collected By', 'Counted By', 'Notes'],
+      ...filteredOfferings.map(offering => [
+        offering.date,
+        offering.service,
+        offering.totalAmount,
+        offering.cashAmount,
+        offering.transferAmount,
+        offering.posAmount,
+        offering.collectedBy,
+        offering.countedBy,
+        offering.notes
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `offerings-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    alert('Offering data has been exported successfully!');
+  };
+
+  const handleMoreFilters = () => {
+    setShowMoreFilters(!showMoreFilters);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterService('all');
+    setFilterDate('');
+    setFilterCollector('all');
+    setFilterAmountRange({ min: '', max: '' });
+  };
 
   // Calculate stats
   const totalOfferings = offerings.reduce((sum, offering) => sum + offering.totalAmount, 0);
@@ -195,8 +313,20 @@ const Offering = () => {
                           offering.collectedBy.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = !filterDate || offering.date === filterDate;
     const matchesService = filterService === 'all' || offering.service === filterService;
-    return matchesSearch && matchesDate && matchesService;
+    const matchesCollector = filterCollector === 'all' || offering.collectedBy === filterCollector;
+    const matchesAmountRange = (!filterAmountRange.min || offering.totalAmount >= parseFloat(filterAmountRange.min)) &&
+                               (!filterAmountRange.max || offering.totalAmount <= parseFloat(filterAmountRange.max));
+    return matchesSearch && matchesDate && matchesService && matchesCollector && matchesAmountRange;
   });
+
+  // Get unique collectors for filter dropdown
+  const collectors = [...new Set(offerings.map(offering => offering.collectedBy))];
+
+  // Calculate stats from current offerings
+  const totalOfferings = offerings.reduce((sum, offering) => sum + offering.totalAmount, 0);
+  const averageOffering = totalOfferings / offerings.length;
+  const cashTotal = offerings.reduce((sum, offering) => sum + offering.cashAmount, 0);
+  const digitalTotal = offerings.reduce((sum, offering) => sum + offering.transferAmount + offering.posAmount, 0);
 
   return (
     <div className="space-y-6 fade-in">

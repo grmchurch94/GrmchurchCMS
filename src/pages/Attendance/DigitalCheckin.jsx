@@ -277,7 +277,15 @@ const DigitalCheckin = () => {
   };
 
   const handleSaveSettings = () => {
-    alert('Settings saved successfully!\n\nNew configuration:\n• QR Expiration: ' + settingsData.qrExpiration + ' hours\n• Auto-refresh: ' + (settingsData.autoRefresh ? 'Enabled' : 'Disabled') + '\n• Notifications: ' + (settingsData.enableNotifications ? 'Enabled' : 'Disabled'));
+    // Save settings to localStorage
+    localStorage.setItem('digitalCheckinSettings', JSON.stringify(settingsData));
+    
+    // Apply QR code refresh if auto-refresh is enabled
+    if (settingsData.autoRefresh) {
+      generateQRCode();
+    }
+    
+    alert('Settings saved successfully!\n\nNew configuration:\n• QR Expiration: ' + settingsData.qrExpiration + ' hours\n• Auto-refresh: ' + (settingsData.autoRefresh ? 'Enabled' : 'Disabled') + '\n• Check-in radius: ' + settingsData.checkinRadius + 'm\n• Offline mode: ' + (settingsData.offlineMode ? 'Enabled' : 'Disabled'));
     setShowSettingsModal(false);
   };
 
@@ -644,6 +652,474 @@ const DigitalCheckin = () => {
           </table>
         </div>
       </Card>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Check-in Settings</h2>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <SafeIcon icon={FiX} className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* QR Code Settings */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">QR Code Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">QR Code Expiration (hours)</label>
+                      <select
+                        name="qrExpiration"
+                        value={settingsData.qrExpiration}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="1">1 hour</option>
+                        <option value="6">6 hours</option>
+                        <option value="12">12 hours</option>
+                        <option value="24">24 hours</option>
+                        <option value="48">48 hours</option>
+                        <option value="168">1 week</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Auto-refresh Interval</label>
+                      <select
+                        name="autoRefreshInterval"
+                        value={settingsData.autoRefreshInterval || '6'}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="1">Every hour</option>
+                        <option value="6">Every 6 hours</option>
+                        <option value="12">Every 12 hours</option>
+                        <option value="24">Daily</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="flex items-center space-x-6">
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="autoRefresh"
+                            checked={settingsData.autoRefresh}
+                            onChange={handleSettingsChange}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Auto-refresh QR codes</span>
+                        </label>
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="requireConfirmation"
+                            checked={settingsData.requireConfirmation}
+                            onChange={handleSettingsChange}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Require check-in confirmation</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Mobile App Settings */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Mobile App Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Check-in Radius (meters)</label>
+                      <input
+                        type="number"
+                        name="checkinRadius"
+                        value={settingsData.checkinRadius}
+                        onChange={handleSettingsChange}
+                        min="10"
+                        max="1000"
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Distance from church for auto check-in</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Session Timeout (minutes)</label>
+                      <select
+                        name="sessionTimeout"
+                        value={settingsData.sessionTimeout || '30'}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="120">2 hours</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="space-y-3">
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="enableNotifications"
+                            checked={settingsData.enableNotifications}
+                            onChange={handleSettingsChange}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Enable push notifications</span>
+                        </label>
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="offlineMode"
+                            checked={settingsData.offlineMode}
+                            onChange={handleSettingsChange}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Enable offline check-in</span>
+                        </label>
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="locationTracking"
+                            checked={settingsData.locationTracking || false}
+                            onChange={handleSettingsChange}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Enable location-based check-in</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* WiFi Settings */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">WiFi-based Check-in</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">WiFi Network Name</label>
+                      <input
+                        type="text"
+                        name="wifiNetworkName"
+                        value={settingsData.wifiNetworkName || 'ChurchGuest'}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        placeholder="WiFi network name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Detection Range (meters)</label>
+                      <input
+                        type="number"
+                        name="wifiRange"
+                        value={settingsData.wifiRange || '50'}
+                        onChange={handleSettingsChange}
+                        min="10"
+                        max="200"
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="wifiAutoCheckin"
+                          checked={settingsData.wifiAutoCheckin || false}
+                          onChange={handleSettingsChange}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Enable automatic WiFi check-in</span>
+                      </label>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Security Settings */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Security & Privacy</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Max Check-ins per QR</label>
+                        <select
+                          name="maxCheckins"
+                          value={settingsData.maxCheckins || 'unlimited'}
+                          onChange={handleSettingsChange}
+                          className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        >
+                          <option value="unlimited">Unlimited</option>
+                          <option value="100">100 check-ins</option>
+                          <option value="500">500 check-ins</option>
+                          <option value="1000">1000 check-ins</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Data Retention (days)</label>
+                        <select
+                          name="dataRetention"
+                          value={settingsData.dataRetention || '365'}
+                          onChange={handleSettingsChange}
+                          className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        >
+                          <option value="30">30 days</option>
+                          <option value="90">90 days</option>
+                          <option value="180">6 months</option>
+                          <option value="365">1 year</option>
+                          <option value="unlimited">Unlimited</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="requireMemberVerification"
+                          checked={settingsData.requireMemberVerification || false}
+                          onChange={handleSettingsChange}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Require member verification for check-in</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="allowGuestCheckin"
+                          checked={settingsData.allowGuestCheckin || true}
+                          onChange={handleSettingsChange}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Allow guest/visitor check-in</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="logIpAddresses"
+                          checked={settingsData.logIpAddresses || false}
+                          onChange={handleSettingsChange}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Log IP addresses for security</span>
+                      </label>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Display Settings */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Display & Interface</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">QR Code Size</label>
+                      <select
+                        name="qrCodeSize"
+                        value={settingsData.qrCodeSize || 'medium'}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="small">Small (200x200)</option>
+                        <option value="medium">Medium (300x300)</option>
+                        <option value="large">Large (400x400)</option>
+                        <option value="xlarge">Extra Large (500x500)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Display Theme</label>
+                      <select
+                        name="displayTheme"
+                        value={settingsData.displayTheme || 'light'}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="light">Light Theme</option>
+                        <option value="dark">Dark Theme</option>
+                        <option value="church">Church Branded</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Custom Welcome Message</label>
+                      <textarea
+                        name="welcomeMessage"
+                        value={settingsData.welcomeMessage || 'Welcome to Grace Community Church! Please scan the QR code to check in.'}
+                        onChange={handleSettingsChange}
+                        rows={3}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        placeholder="Enter custom welcome message for check-in screen"
+                      />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Notification Settings */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Notifications & Alerts</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Admin Email for Alerts</label>
+                        <input
+                          type="email"
+                          name="adminEmail"
+                          value={settingsData.adminEmail || 'admin@church.com'}
+                          onChange={handleSettingsChange}
+                          className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          placeholder="admin@church.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Alert Threshold</label>
+                        <select
+                          name="alertThreshold"
+                          value={settingsData.alertThreshold || '50'}
+                          onChange={handleSettingsChange}
+                          className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        >
+                          <option value="25">25 check-ins</option>
+                          <option value="50">50 check-ins</option>
+                          <option value="100">100 check-ins</option>
+                          <option value="200">200 check-ins</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">Send alert when threshold reached</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="emailNotifications"
+                          checked={settingsData.emailNotifications || false}
+                          onChange={handleSettingsChange}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Send email notifications for check-ins</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="smsNotifications"
+                          checked={settingsData.smsNotifications || false}
+                          onChange={handleSettingsChange}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Send SMS notifications to staff</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="realTimeUpdates"
+                          checked={settingsData.realTimeUpdates || true}
+                          onChange={handleSettingsChange}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Enable real-time dashboard updates</span>
+                      </label>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Integration Settings */}
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">System Integration</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sync with Member Database</label>
+                      <select
+                        name="memberSync"
+                        value={settingsData.memberSync || 'automatic'}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="automatic">Automatic sync</option>
+                        <option value="manual">Manual sync only</option>
+                        <option value="disabled">Disabled</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Backup Frequency</label>
+                      <select
+                        name="backupFrequency"
+                        value={settingsData.backupFrequency || 'daily'}
+                        onChange={handleSettingsChange}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="realtime">Real-time</option>
+                        <option value="hourly">Hourly</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="space-y-3">
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="exportToCalendar"
+                            checked={settingsData.exportToCalendar || false}
+                            onChange={handleSettingsChange}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Export attendance to calendar system</span>
+                        </label>
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            name="apiAccess"
+                            checked={settingsData.apiAccess || false}
+                            onChange={handleSettingsChange}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Enable API access for third-party apps</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
+              <Button 
+                variant="secondary" 
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  setSettingsData({
+                    qrExpiration: '24',
+                    autoRefresh: true,
+                    requireConfirmation: true,
+                    enableNotifications: true,
+                    offlineMode: true,
+                    checkinRadius: '100'
+                  });
+                }}
+              >
+                Reset to Defaults
+              </Button>
+              <Button 
+                icon={FiSave}
+                type="button"
+                onClick={handleSaveSettings}
+              >
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

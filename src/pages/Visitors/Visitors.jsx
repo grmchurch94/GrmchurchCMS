@@ -196,28 +196,6 @@ const Visitors = () => {
     setSelectedVisitor(null);
   };
 
-  const handleExportVisitors = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Phone', 'Visit Date', 'Follow-up Status', 'How Heard', 'Assigned To'],
-      ...filteredVisitors.map(visitor => [
-        visitor.name,
-        visitor.email,
-        visitor.phone,
-        visitor.visitDate,
-        visitor.followUpStatus,
-        visitor.howHeard,
-        visitor.assignedTo || 'Not assigned'
-      ])
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `visitors-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
 
   const getStatusIcon = (status) => {
     switch (status) {

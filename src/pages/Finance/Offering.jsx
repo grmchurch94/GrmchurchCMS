@@ -346,12 +346,6 @@ const Offering = () => {
   // Get unique collectors for filter dropdown
   const collectors = [...new Set(offerings.map(offering => offering.collectedBy))];
 
-  // Calculate stats from current offerings
-  const totalOfferings = offerings.reduce((sum, offering) => sum + offering.totalAmount, 0);
-  const averageOffering = totalOfferings / offerings.length;
-  const cashTotal = offerings.reduce((sum, offering) => sum + offering.cashAmount, 0);
-  const digitalTotal = offerings.reduce((sum, offering) => sum + offering.transferAmount + offering.posAmount, 0);
-
   return (
     <div className="space-y-6 fade-in">
       {/* Page Header */}

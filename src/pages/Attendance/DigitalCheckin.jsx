@@ -20,6 +20,24 @@ const {
   FiMonitor
 } = FiIcons;
 
+const FiX = (props) => (
+  <svg
+    stroke="currentColor"
+    fill="none"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    height="1em"
+    width="1em"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
+
 const DigitalCheckin = () => {
   const [activeService, setActiveService] = useState('sunday-morning');
   const [qrCodeActive, setQrCodeActive] = useState(true);
@@ -489,10 +507,10 @@ const DigitalCheckin = () => {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-end space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleToggleService(service.id)}>
+                      <Button variant="outline" size="sm">
                         {service.active ? 'Stop' : 'Start'}
                       </Button>
-                      <Button variant="outline" size="sm" icon={FiDownload} onClick={() => handleExportService(service.id)}>
+                      <Button variant="outline" size="sm" icon={FiDownload}>
                         Export
                       </Button>
                     </div>

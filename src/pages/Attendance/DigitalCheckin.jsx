@@ -489,10 +489,10 @@ const DigitalCheckin = () => {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-end space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleToggleService(service.id)}>
                         {service.active ? 'Stop' : 'Start'}
                       </Button>
-                      <Button variant="outline" size="sm" icon={FiDownload}>
+                      <Button variant="outline" size="sm" icon={FiDownload} onClick={() => handleExportService(service.id)}>
                         Export
                       </Button>
                     </div>

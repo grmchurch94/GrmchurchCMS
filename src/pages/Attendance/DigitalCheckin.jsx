@@ -56,6 +56,21 @@ const DigitalCheckin = () => {
     { id: 'midweek', name: 'Midweek Service', time: '7:00 PM', active: false },
     { id: 'youth', name: 'Youth Service', time: '5:00 PM', active: false }
   ]);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [newServiceData, setNewServiceData] = useState({
+    name: '',
+    time: '',
+    description: ''
+  });
+  const [settingsData, setSettingsData] = useState({
+    qrExpiration: '24',
+    autoRefresh: true,
+    requireConfirmation: true,
+    enableNotifications: true,
+    offlineMode: true,
+    checkinRadius: '100'
+  });
 
 
   // Mock data for recent check-ins
@@ -162,7 +177,7 @@ const DigitalCheckin = () => {
   };
 
   const handleCheckinSettings = () => {
-    setShowSettings(true);
+    setShowSettingsModal(true);
   };
 
   const handleConfigureQR = () => {
@@ -178,6 +193,7 @@ const DigitalCheckin = () => {
   };
 
   const handleAddService = () => {
+    setNewServiceData({ name: '', time: '', description: '' });
     setShowServiceForm(true);
   };
 
@@ -208,17 +224,43 @@ const DigitalCheckin = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleSaveService = (formData) => {
+  const handleSaveService = (e) => {
+    e.preventDefault();
+    
+    if (!newServiceData.name.trim() || !newServiceData.time.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
     const newService = {
-      id: formData.name.toLowerCase().replace(/\s+/g, '-'),
-      name: formData.name,
-      time: formData.time,
+      id: newServiceData.name.toLowerCase().replace(/\s+/g, '-'),
+      name: newServiceData.name,
+      time: newServiceData.time,
       active: false
     };
     
     setServices(prev => [...prev, newService]);
-    alert(`Service "${formData.name}" has been added successfully!`);
+    alert(`Service "${newServiceData.name}" has been added successfully!`);
     setShowServiceForm(false);
+    setNewServiceData({ name: '', time: '', description: '' });
+  };
+
+  const handleServiceInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewServiceData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSettingsChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setSettingsData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSaveSettings = () => {
+    alert('Settings saved successfully!\n\nNew configuration:\n• QR Expiration: ' + settingsData.qrExpiration + ' hours\n• Auto-refresh: ' + (settingsData.autoRefresh ? 'Enabled' : 'Disabled') + '\n• Notifications: ' + (settingsData.enableNotifications ? 'Enabled' : 'Disabled'));
+    setShowSettingsModal(false);
   };
 
   const handleExportHistory = () => {
@@ -464,7 +506,7 @@ const DigitalCheckin = () => {
       <Card>
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">Service Management</h3>
-          <Button icon={FiCalendar} size="sm">Add Service</Button>
+          <Button icon={FiCalendar} size="sm" onClick={handleAddService}>Add Service</Button>
         </div>
         
         <div className="overflow-x-auto">
@@ -507,10 +549,19 @@ const DigitalCheckin = () => {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-end space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleToggleService(service.id)}
+                      >
                         {service.active ? 'Stop' : 'Start'}
                       </Button>
-                      <Button variant="outline" size="sm" icon={FiDownload}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        icon={FiDownload}
+                        onClick={() => handleExportService(service.id)}
+                      >
                         Export
                       </Button>
                     </div>
@@ -526,7 +577,7 @@ const DigitalCheckin = () => {
       <Card>
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">Recent Check-ins</h3>
-          <Button variant="outline" icon={FiDownload} size="sm">Export History</Button>
+          <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportHistory}>Export History</Button>
         </div>
         
         <div className="overflow-x-auto">

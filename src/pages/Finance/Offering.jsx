@@ -508,6 +508,272 @@ const Offering = () => {
           </table>
         </div>
       </Card>
+
+      {/* Offering Form Modal */}
+      {showOfferingForm && (
+        <OfferingForm 
+          initialData={selectedOffering} 
+          onClose={() => {
+            setShowOfferingForm(false);
+            setSelectedOffering(null);
+          }} 
+          onSubmit={selectedOffering ? handleUpdateOffering : handleAddOffering} 
+        />
+      )}
+    </div>
+  );
+};
+
+// Offering Form Component
+const OfferingForm = ({ onClose, onSubmit, initialData = null }) => {
+  const [formData, setFormData] = useState({
+    date: initialData?.date || new Date().toISOString().split('T')[0],
+    service: initialData?.service || 'Sunday Morning Service',
+    cashAmount: initialData?.cashAmount || '',
+    transferAmount: initialData?.transferAmount || '',
+    posAmount: initialData?.posAmount || '',
+    collectedBy: initialData?.collectedBy || '',
+    countedBy: initialData?.countedBy || 'Finance Team',
+    notes: initialData?.notes || ''
+  });
+
+  const services = [
+    'Sunday Morning Service',
+    'Sunday Evening Service',
+    'Midweek Service',
+    'Prayer Meeting',
+    'Special Event',
+    'Youth Service',
+    'Children\'s Service'
+  ];
+
+  const collectors = [
+    'Deacon Michael',
+    'Deacon Sarah',
+    'Elder John',
+    'Elder Mary',
+    'Usher Team',
+    'Finance Team'
+  ];
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.cashAmount && !formData.transferAmount && !formData.posAmount) {
+      alert('Please enter at least one amount (Cash, Transfer, or POS)');
+      return;
+    }
+    
+    onSubmit(formData);
+  };
+
+  const totalAmount = (parseFloat(formData.cashAmount) || 0) + 
+                     (parseFloat(formData.transferAmount) || 0) + 
+                     (parseFloat(formData.posAmount) || 0);
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">
+            {initialData ? 'Edit Offering Record' : 'Record New Offering'}
+          </h2>
+          <button 
+            className="text-gray-400 hover:text-gray-600"
+            onClick={onClose}
+          >
+            <SafeIcon icon={FiX} className="text-xl" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
+            {/* Service Details */}
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Service Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <SafeIcon icon={FiCalendar} className="text-gray-400" />
+                    </div>
+                    <input 
+                      type="date" 
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      required
+                      className="block w-full pl-10 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Type*</label>
+                  <select 
+                    name="service"
+                    value={formData.service}
+                    onChange={handleChange}
+                    required
+                    className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  >
+                    {services.map((service, index) => (
+                      <option key={index} value={service}>{service}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </Card>
+
+            {/* Offering Amounts */}
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Offering Amounts</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cash Amount</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">₦</span>
+                    </div>
+                    <input 
+                      type="number" 
+                      name="cashAmount"
+                      min="0"
+                      step="0.01"
+                      value={formData.cashAmount}
+                      onChange={handleChange}
+                      className="block w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Transfer</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">₦</span>
+                    </div>
+                    <input 
+                      type="number" 
+                      name="transferAmount"
+                      min="0"
+                      step="0.01"
+                      value={formData.transferAmount}
+                      onChange={handleChange}
+                      className="block w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">POS/Card</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">₦</span>
+                    </div>
+                    <input 
+                      type="number" 
+                      name="posAmount"
+                      min="0"
+                      step="0.01"
+                      value={formData.posAmount}
+                      onChange={handleChange}
+                      className="block w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Total Display */}
+              <div className="mt-4 p-4 bg-emerald-50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-medium text-gray-900">Total Amount:</span>
+                  <span className="text-2xl font-bold text-emerald-600">
+                    {new Intl.NumberFormat('en-NG', {
+                      style: 'currency',
+                      currency: 'NGN',
+                      minimumFractionDigits: 2
+                    }).format(totalAmount)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Collection Details */}
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Collection Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Collected By*</label>
+                  <select 
+                    name="collectedBy"
+                    value={formData.collectedBy}
+                    onChange={handleChange}
+                    required
+                    className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  >
+                    <option value="">Select collector</option>
+                    {collectors.map((collector, index) => (
+                      <option key={index} value={collector}>{collector}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Counted By*</label>
+                  <input 
+                    type="text" 
+                    name="countedBy"
+                    value={formData.countedBy}
+                    onChange={handleChange}
+                    required
+                    className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    placeholder="Who counted the offering"
+                  />
+                </div>
+              </div>
+            </Card>
+
+            {/* Notes */}
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Notes</h3>
+              <textarea 
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={4}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="Add any additional notes about this offering collection..."
+              />
+            </Card>
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-3">
+              <Button 
+                variant="secondary" 
+                type="button"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button 
+                icon={FiSave}
+                type="submit"
+              >
+                {initialData ? 'Update Offering' : 'Save Offering'}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

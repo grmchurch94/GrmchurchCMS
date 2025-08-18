@@ -85,6 +85,32 @@ const Attendance = () => {
     setShowAttendanceForm(false);
   };
 
+  const handleExportAttendance = () => {
+    const csvContent = [
+      ['Date', 'Service', 'Time', 'Total Attendees', 'Present Members', 'Visitors', 'Trend'],
+      ...filteredRecords.map(record => [
+        format(new Date(record.date), 'MMM d, yyyy'),
+        record.service,
+        record.time,
+        record.totalAttendees,
+        record.presentMembers,
+        record.visitors,
+        record.trend
+      ])
+    ];
+
+    const csvString = csvContent.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `attendance-records-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   const filteredRecords = attendanceRecords.filter(record => {
     const matchesSearch = record.service.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesService = filterService === 'all' || record.service === filterService;

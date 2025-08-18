@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import Card from '../../components/UI/Card';
 import Button from '../../components/UI/Button';
 import SafeIcon from '../../common/SafeIcon';
@@ -45,9 +46,20 @@ const FiPending = (props) => (
 const Visitors = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterHowHeard, setFilterHowHeard] = useState('all');
+  const [filterVisitDate, setFilterVisitDate] = useState('');
+  const [filterAssignedTo, setFilterAssignedTo] = useState('all');
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [showVisitorForm, setShowVisitorForm] = useState(false);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
-  const [visitors, setVisitors] = useState([
+  
+  // Initialize visitors from localStorage or use default data
+  const [visitors, setVisitors] = useState(() => {
+    const savedVisitors = localStorage.getItem('churchVisitors');
+    if (savedVisitors) {
+      return JSON.parse(savedVisitors);
+    }
+    return [
     {
       id: 1,
       name: 'Alex Thompson',
@@ -98,13 +110,46 @@ const Visitors = () => {
       howHeard: 'Advertisement',
       assignedTo: 'Ministry Leader Emily'
     }
-  ]);
+    ];
+  });
+
+  // Save visitors to localStorage whenever visitors state changes
+  useEffect(() => {
+    localStorage.setItem('churchVisitors', JSON.stringify(visitors));
+  }, [visitors]);
 
   const handleDeleteVisitor = (visitorId) => {
     if (window.confirm('Are you sure you want to delete this visitor? This action cannot be undone.')) {
       setVisitors(prevVisitors => prevVisitors.filter(visitor => visitor.id !== visitorId));
       alert('Visitor has been deleted successfully!');
     }
+  };
+
+  const handleExportVisitors = () => {
+    const csvContent = [
+      ['Name', 'Email', 'Phone', 'Visit Date', 'Follow-up Status', 'How Heard', 'Assigned To'],
+      ...filteredVisitors.map(visitor => [
+        visitor.name,
+        visitor.email,
+        visitor.phone,
+        visitor.visitDate,
+        visitor.followUpStatus,
+        visitor.howHeard,
+        visitor.assignedTo || 'Not assigned'
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `visitors-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleMoreFilters = () => {
+    setShowMoreFilters(!showMoreFilters);
   };
 
   const handleEditVisitor = (visitor) => {
@@ -207,9 +252,16 @@ const Visitors = () => {
   const filteredVisitors = visitors.filter(visitor => {
     const matchesSearch = visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           visitor.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || visitor.followUpStatus === filterStatus;
-    return matchesSearch && matchesFilter;
+    const matchesStatus = filterStatus === 'all' || visitor.followUpStatus === filterStatus;
+    const matchesHowHeard = filterHowHeard === 'all' || visitor.howHeard === filterHowHeard;
+    const matchesVisitDate = !filterVisitDate || visitor.visitDate === filterVisitDate;
+    const matchesAssignedTo = filterAssignedTo === 'all' || visitor.assignedTo === filterAssignedTo;
+    return matchesSearch && matchesStatus && matchesHowHeard && matchesVisitDate && matchesAssignedTo;
   });
+
+  // Get unique values for filter dropdowns
+  const howHeardOptions = [...new Set(visitors.map(visitor => visitor.howHeard))];
+  const assignedToOptions = [...new Set(visitors.map(visitor => visitor.assignedTo).filter(Boolean))];
 
   // Calculate stats
   const totalVisitors = visitors.length;
@@ -324,12 +376,76 @@ const Visitors = () => {
               <option value="Not Required">Not Required</option>
             </select>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              <Button variant="outline" icon={FiFilter} size="sm">More Filters</Button>
-              <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportVisitors}>Export</Button>
+              <Button variant="outline" icon={FiFilter} size="sm" onClick={handleMoreFilters}>
+                More Filters
+              </Button>
+              <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportVisitors}>
+                Export
+              </Button>
             </div>
           </div>
         </div>
       </Card>
+
+      {/* More Filters Panel */}
+      {showMoreFilters && (
+        <Card>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">How They Heard</label>
+              <select
+                value={filterHowHeard}
+                onChange={(e) => setFilterHowHeard(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              >
+                <option value="all">All Sources</option>
+                {howHeardOptions.map((option, index) => (
+                  <option key={index} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Visit Date</label>
+              <input
+                type="date"
+                value={filterVisitDate}
+                onChange={(e) => setFilterVisitDate(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
+              <select
+                value={filterAssignedTo}
+                onChange={(e) => setFilterAssignedTo(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              >
+                <option value="all">All Assignees</option>
+                <option value="">Unassigned</option>
+                {assignedToOptions.map((assignee, index) => (
+                  <option key={index} value={assignee}>{assignee}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterStatus('all');
+                  setFilterHowHeard('all');
+                  setFilterVisitDate('');
+                  setFilterAssignedTo('all');
+                  setSearchTerm('');
+                }}
+                className="w-full"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Visitors List */}
       <Card>

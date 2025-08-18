@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import Card from '../../components/UI/Card';
 import Button from '../../components/UI/Button';
 import SafeIcon from '../../common/SafeIcon';
@@ -11,10 +12,20 @@ const { FiPlus, FiSearch, FiFilter, FiEdit, FiTrash2, FiMail, FiPhone, FiDownloa
 const Members = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterMinistry, setFilterMinistry] = useState('all');
+  const [filterJoinDate, setFilterJoinDate] = useState('');
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
-  const [members, setMembers] = useState([
+  
+  // Initialize members from localStorage or use default data
+  const [members, setMembers] = useState(() => {
+    const savedMembers = localStorage.getItem('churchMembers');
+    if (savedMembers) {
+      return JSON.parse(savedMembers);
+    }
+    return [
     {
       id: 1,
       name: 'John Smith',
@@ -142,9 +153,104 @@ const Members = () => {
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || member.status.toLowerCase() === filterStatus.toLowerCase();
-    return matchesSearch && matchesFilter;
+    const matchesStatus = filterStatus === 'all' || member.status.toLowerCase() === filterStatus.toLowerCase();
+    const matchesMinistry = filterMinistry === 'all' || member.ministry === filterMinistry;
+    const matchesJoinDate = !filterJoinDate || member.joinDate === filterJoinDate;
+    return matchesSearch && matchesStatus && matchesMinistry && matchesJoinDate;
+    const matchesJoinDate = !filterJoinDate || member.joinDate === filterJoinDate;
+    return matchesSearch && matchesStatus && matchesMinistry && matchesJoinDate;
   });
+
+  // Get unique ministries for filter dropdown
+  const ministries = [...new Set(members.map(member => member.ministry))];
+
+  // Save members to localStorage whenever members state changes
+  useEffect(() => {
+    localStorage.setItem('churchMembers', JSON.stringify(members));
+  }, [members]);
+
+  const handleImportMembers = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // In a real app, you would parse the CSV/Excel file
+        alert(`Import functionality would process: ${file.name}\n\nThis would parse the file and add members to the system.`);
+      }
+    };
+    input.click();
+  };
+
+  const handleExportMembers = () => {
+    const csvContent = [
+      ['Name', 'Email', 'Phone', 'Status', 'Join Date', 'Ministry'],
+      ...filteredMembers.map(member => [
+        member.name,
+        member.email,
+        member.phone,
+        member.status,
+        member.joinDate,
+        member.ministry
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `members-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleMoreFilters = () => {
+    setShowMoreFilters(!showMoreFilters);
+  });
+
+  // Get unique ministries for filter dropdown
+  const ministries = [...new Set(members.map(member => member.ministry))];
+
+  const handleExportMembers = () => {
+    const csvContent = [
+      ['Name', 'Email', 'Phone', 'Status', 'Join Date', 'Ministry'],
+      ...filteredMembers.map(member => [
+        member.name,
+        member.email,
+        member.phone,
+        member.status,
+        member.joinDate,
+        member.ministry
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `members-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleImportMembers = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // In a real app, you would parse the CSV/Excel file
+        alert(`Import functionality would process: ${file.name}\n\nThis would parse the file and add members to the system.`);
+      }
+    };
+    input.click();
+  };
+
+  const handleMoreFilters = () => {
+    setShowMoreFilters(!showMoreFilters);
+  };
 
   return (
     <div className="space-y-6 fade-in">
@@ -191,13 +297,115 @@ const Members = () => {
               <option value="inactive">Inactive</option>
             </select>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              <Button variant="outline" icon={FiFilter} size="sm">More Filters</Button>
-              <Button variant="outline" icon={FiUpload} size="sm">Import</Button>
-              <Button variant="outline" icon={FiDownload} size="sm">Export</Button>
+              <Button variant="outline" icon={FiFilter} size="sm" onClick={handleMoreFilters}>
+                More Filters
+              </Button>
+              <Button variant="outline" icon={FiUpload} size="sm" onClick={handleImportMembers}>
+                Import
+              </Button>
+              <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportMembers}>
+                Export
+              </Button>
+              <Button variant="outline" icon={FiUpload} size="sm" onClick={handleImportMembers}>
+                Import
+              </Button>
+              <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportMembers}>
+                Export
+              </Button>
             </div>
           </div>
         </div>
       </Card>
+
+      {/* More Filters Panel */}
+      {showMoreFilters && (
+        <Card>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ministry</label>
+              <select
+                value={filterMinistry}
+                onChange={(e) => setFilterMinistry(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              >
+                <option value="all">All Ministries</option>
+                {ministries.map((ministry, index) => (
+                  <option key={index} value={ministry}>{ministry}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Join Date</label>
+              <input
+                type="date"
+                value={filterJoinDate}
+                onChange={(e) => setFilterJoinDate(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterMinistry('all');
+                  setFilterJoinDate('');
+                  setFilterStatus('all');
+                  setSearchTerm('');
+                }}
+                className="w-full"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* More Filters Panel */}
+      {showMoreFilters && (
+        <Card>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ministry</label>
+              <select
+                value={filterMinistry}
+                onChange={(e) => setFilterMinistry(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              >
+                <option value="all">All Ministries</option>
+                {ministries.map((ministry, index) => (
+                  <option key={index} value={ministry}>{ministry}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Join Date</label>
+              <input
+                type="date"
+                value={filterJoinDate}
+                onChange={(e) => setFilterJoinDate(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterMinistry('all');
+                  setFilterJoinDate('');
+                  setFilterStatus('all');
+                  setSearchTerm('');
+                }}
+                className="w-full"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Members List */}
       <Card>

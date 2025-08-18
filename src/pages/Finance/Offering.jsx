@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Card from '../../components/UI/Card';
 import Button from '../../components/UI/Button';
 import SafeIcon from '../../common/SafeIcon';
+import OfferingForm from '../../components/Finance/OfferingForm';
 import * as FiIcons from 'react-icons/fi';
 import { format } from 'date-fns';
 import ReactEcharts from 'echarts-for-react';
@@ -27,6 +28,8 @@ const Offering = () => {
   const [showOfferingForm, setShowOfferingForm] = useState(false);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [selectedOffering, setSelectedOffering] = useState(null);
+  const [filterCollector, setFilterCollector] = useState('all');
+  const [filterAmountRange, setFilterAmountRange] = useState({ min: '', max: '' });
   const [offerings, setOfferings] = useState(() => {
     const savedOfferings = localStorage.getItem('churchOfferings');
     if (savedOfferings) {
@@ -103,133 +106,6 @@ const Offering = () => {
     localStorage.setItem('churchOfferings', JSON.stringify(offerings));
   }, [offerings]);
 
-  const handleRecordOffering = () => {
-    setSelectedOffering(null);
-    setShowOfferingForm(true);
-  };
-
-  const handleEditOffering = (offering) => {
-    setSelectedOffering(offering);
-    setShowOfferingForm(true);
-  };
-
-  const handleDeleteOffering = (offeringId) => {
-    if (window.confirm('Are you sure you want to delete this offering record? This action cannot be undone.')) {
-      setOfferings(prevOfferings => prevOfferings.filter(offering => offering.id !== offeringId));
-      alert('Offering record has been deleted successfully!');
-    }
-  };
-
-  const handleAddOffering = (formData) => {
-    console.log('New offering data:', formData);
-    
-    const newOffering = {
-      id: Math.max(...offerings.map(o => o.id), 0) + 1,
-      date: formData.date,
-      service: formData.service,
-      totalAmount: parseFloat(formData.cashAmount) + parseFloat(formData.transferAmount) + parseFloat(formData.posAmount),
-      cashAmount: parseFloat(formData.cashAmount),
-      transferAmount: parseFloat(formData.transferAmount),
-      posAmount: parseFloat(formData.posAmount),
-      collectedBy: formData.collectedBy,
-      countedBy: formData.countedBy,
-      notes: formData.notes
-    };
-    
-    setOfferings(prevOfferings => [...prevOfferings, newOffering]);
-    alert(`Offering record for ${formData.service} has been added successfully!`);
-    setShowOfferingForm(false);
-    setSelectedOffering(null);
-  };
-
-  const handleUpdateOffering = (formData) => {
-    console.log('Updated offering data:', formData);
-    
-    setOfferings(prevOfferings => 
-      prevOfferings.map(offering => 
-        offering.id === selectedOffering.id 
-          ? {
-              ...offering,
-              date: formData.date,
-              service: formData.service,
-              totalAmount: parseFloat(formData.cashAmount) + parseFloat(formData.transferAmount) + parseFloat(formData.posAmount),
-              cashAmount: parseFloat(formData.cashAmount),
-              transferAmount: parseFloat(formData.transferAmount),
-              posAmount: parseFloat(formData.posAmount),
-              collectedBy: formData.collectedBy,
-              countedBy: formData.countedBy,
-              notes: formData.notes
-            }
-          : offering
-      )
-    );
-    
-    alert(`Offering record for ${formData.service} has been updated successfully!`);
-    setShowOfferingForm(false);
-    setSelectedOffering(null);
-  };
-
-  const handleExportOfferings = () => {
-    const csvContent = [
-      ['Date', 'Service', 'Total Amount', 'Cash', 'Transfer', 'POS', 'Collected By', 'Counted By', 'Notes'],
-      ...filteredOfferings.map(offering => [
-        offering.date,
-        offering.service,
-        offering.totalAmount,
-        offering.cashAmount,
-        offering.transferAmount,
-        offering.posAmount,
-        offering.collectedBy,
-        offering.countedBy,
-        offering.notes
-      ])
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `offerings-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    alert('Offering data has been exported successfully!');
-  };
-
-  const handleDownloadOffering = (offering) => {
-    const csvContent = [
-      ['Field', 'Value'],
-      ['Date', offering.date],
-      ['Service', offering.service],
-      ['Total Amount', offering.totalAmount],
-      ['Cash Amount', offering.cashAmount],
-      ['Transfer Amount', offering.transferAmount],
-      ['POS Amount', offering.posAmount],
-      ['Collected By', offering.collectedBy],
-      ['Counted By', offering.countedBy],
-      ['Notes', offering.notes || 'N/A']
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `offering-${offering.service.replace(/\s+/g, '-').toLowerCase()}-${offering.date}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    alert('Offering receipt has been downloaded successfully!');
-  };
-
-  const handleMoreFilters = () => {
-    setShowMoreFilters(!showMoreFilters);
-  };
-
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setFilterService('all');
-    setFilterDate('');
-    setFilterCollector('all');
-    setFilterAmountRange({ min: '', max: '' });
-  };
 
   // Calculate stats
   const totalOfferings = offerings.reduce((sum, offering) => sum + offering.totalAmount, 0);
@@ -338,6 +214,9 @@ const Offering = () => {
     const matchesDate = !filterDate || offering.date === filterDate;
     const matchesService = filterService === 'all' || offering.service === filterService;
     const matchesCollector = filterCollector === 'all' || offering.collectedBy === filterCollector;
+    const matchesAmountRange = (!filterAmountRange.min || offering.totalAmount >= parseFloat(filterAmountRange.min)) &&
+                               (!filterAmountRange.max || offering.totalAmount <= parseFloat(filterAmountRange.max));
+    return matchesSearch && matchesDate && matchesService && matchesCollector && matchesAmountRange;
     const matchesAmountRange = (!filterAmountRange.min || offering.totalAmount >= parseFloat(filterAmountRange.min)) &&
                                (!filterAmountRange.max || offering.totalAmount <= parseFloat(filterAmountRange.max));
     return matchesSearch && matchesDate && matchesService && matchesCollector && matchesAmountRange;
@@ -472,10 +351,75 @@ const Offering = () => {
               />
             </div>
             <Button variant="outline" icon={FiFilter} size="sm">More Filters</Button>
+            <Button variant="outline" icon={FiDownload} size="sm" onClick={handleExportOfferings}>Export</Button>
           </div>
         </div>
       </Card>
 
+      {/* More Filters Panel */}
+      {showMoreFilters && (
+        <Card>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Collected By</label>
+              <select
+                value={filterCollector}
+                onChange={(e) => setFilterCollector(e.target.value)}
+                className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              >
+                <option value="all">All Collectors</option>
+                {collectors.map((collector, index) => (
+                  <option key={index} value={collector}>{collector}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Min Amount</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">₦</span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={filterAmountRange.min}
+                  onChange={(e) => setFilterAmountRange(prev => ({ ...prev, min: e.target.value }))}
+                  className="block w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Max Amount</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">₦</span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={filterAmountRange.max}
+                  onChange={(e) => setFilterAmountRange(prev => ({ ...prev, max: e.target.value }))}
+                  className="block w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={handleClearFilters}
+                className="w-full"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
       {/* Offerings List */}
       <Card>
         <div className="overflow-x-auto">
@@ -509,13 +453,25 @@ const Offering = () => {
                   <td className="py-4 px-4">{offering.collectedBy}</td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-end space-x-2">
-                      <button className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                      <button 
+                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        onClick={() => handleEditOffering(offering)}
+                        title="Edit Offering"
+                      >
                         <SafeIcon icon={FiEdit} />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                      <button 
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        onClick={() => handleDownloadOffering(offering)}
+                        title="Download Receipt"
+                      >
                         <SafeIcon icon={FiDownload} />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                      <button 
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => handleDeleteOffering(offering.id)}
+                        title="Delete Offering"
+                      >
                         <SafeIcon icon={FiTrash2} />
                       </button>
                     </div>
@@ -526,6 +482,18 @@ const Offering = () => {
           </table>
         </div>
       </Card>
+
+      {/* Offering Form Modal */}
+      {showOfferingForm && (
+        <OfferingForm 
+          initialData={selectedOffering} 
+          onClose={() => {
+            setShowOfferingForm(false);
+            setSelectedOffering(null);
+          }} 
+          onSubmit={selectedOffering ? handleUpdateOffering : handleAddOffering} 
+        />
+      )}
     </div>
   );
 };

@@ -215,9 +215,6 @@ const Offering = () => {
     const matchesAmountRange = (!filterAmountRange.min || offering.totalAmount >= parseFloat(filterAmountRange.min)) &&
                                (!filterAmountRange.max || offering.totalAmount <= parseFloat(filterAmountRange.max));
     return matchesSearch && matchesDate && matchesService && matchesCollector && matchesAmountRange;
-    const matchesAmountRange = (!filterAmountRange.min || offering.totalAmount >= parseFloat(filterAmountRange.min)) &&
-                               (!filterAmountRange.max || offering.totalAmount <= parseFloat(filterAmountRange.max));
-    return matchesSearch && matchesDate && matchesService && matchesCollector && matchesAmountRange;
   });
 
   // Get unique collectors for filter dropdown

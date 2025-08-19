@@ -98,8 +98,6 @@ const Offering = () => {
       }
     ];
   });
-  const [filterCollector, setFilterCollector] = useState('all');
-  const [filterAmountRange, setFilterAmountRange] = useState({ min: '', max: '' });
 
   // Save offerings to localStorage whenever offerings state changes
   React.useEffect(() => {
